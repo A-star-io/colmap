@@ -1,21 +1,37 @@
-// COLMAP - Structure-from-Motion and Multi-View Stereo.
-// Copyright (C) 2017  Johannes L. Schoenberger <jsch at inf.ethz.ch>
+// Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
+// All rights reserved.
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
 //
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+//     * Redistributions of source code must retain the above copyright
+//       notice, this list of conditions and the following disclaimer.
 //
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//     * Redistributions in binary form must reproduce the above copyright
+//       notice, this list of conditions and the following disclaimer in the
+//       documentation and/or other materials provided with the distribution.
+//
+//     * Neither the name of ETH Zurich and UNC Chapel Hill nor the names of
+//       its contributors may be used to endorse or promote products derived
+//       from this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+//
+// Author: Johannes L. Schoenberger (jsch at inf.ethz.ch)
 
 #include "base/image_reader.h"
 
+#include "base/camera_models.h"
 #include "util/misc.h"
 
 namespace colmap {
@@ -49,7 +65,7 @@ ImageReader::ImageReader(const ImageReaderOptions& options, Database* database)
     }
   }
 
-  if (options_.existing_camera_id != kInvalidCameraId) {
+  if (static_cast<camera_t>(options_.existing_camera_id) != kInvalidCameraId) {
     CHECK(database->ExistsCamera(options_.existing_camera_id));
     prev_camera_ = database->ReadCamera(options_.existing_camera_id);
   } else {
@@ -58,6 +74,7 @@ ImageReader::ImageReader(const ImageReaderOptions& options, Database* database)
     prev_camera_.SetModelIdFromName(options_.camera_model);
     if (!options_.camera_params.empty()) {
       prev_camera_.SetParamsFromString(options_.camera_params);
+      prev_camera_.SetPriorFocalLength(true);
     }
   }
 }
@@ -84,6 +101,8 @@ ImageReader::Status ImageReader::Next(Camera* camera, Image* image,
   image->SetName(
       image->Name().substr(options_.image_path.size(),
                            image->Name().size() - options_.image_path.size()));
+
+  const std::string image_folder = GetParentDir(image->Name());
 
   //////////////////////////////////////////////////////////////////////////////
   // Check if image already read.
@@ -120,32 +139,38 @@ ImageReader::Status ImageReader::Next(Camera* camera, Image* image,
     if (options_.single_camera && prev_camera_.CameraId() != kInvalidCameraId &&
         (camera.Width() != prev_camera_.Width() ||
          camera.Height() != prev_camera_.Height())) {
-      return Status::CAMERA_SINGLE_ERROR;
+      return Status::CAMERA_SINGLE_DIM_ERROR;
     }
 
     if (static_cast<size_t>(bitmap->Width()) != camera.Width() ||
         static_cast<size_t>(bitmap->Height()) != camera.Height()) {
-      return Status::CAMERA_DIM_ERROR;
+      return Status::CAMERA_EXIST_DIM_ERROR;
     }
   }
 
   //////////////////////////////////////////////////////////////////////////////
-  // Extract image dimensions.
+  // Check image dimensions.
   //////////////////////////////////////////////////////////////////////////////
 
-  if (options_.single_camera && prev_camera_.CameraId() != kInvalidCameraId &&
+  if (prev_camera_.CameraId() != kInvalidCameraId &&
+      ((options_.single_camera && !options_.single_camera_per_folder) ||
+       (options_.single_camera_per_folder &&
+        image_folder == prev_image_folder_)) &&
       (prev_camera_.Width() != static_cast<size_t>(bitmap->Width()) ||
        prev_camera_.Height() != static_cast<size_t>(bitmap->Height()))) {
-    return Status::CAMERA_SINGLE_ERROR;
+    return Status::CAMERA_SINGLE_DIM_ERROR;
   }
 
   //////////////////////////////////////////////////////////////////////////////
   // Extract camera model and focal length
   //////////////////////////////////////////////////////////////////////////////
 
-  if ((!options_.single_camera &&
-       options_.existing_camera_id == kInvalidCameraId) ||
-      prev_camera_.CameraId() == kInvalidCameraId) {
+  if (prev_camera_.CameraId() == kInvalidCameraId ||
+      (!options_.single_camera && !options_.single_camera_per_folder &&
+       static_cast<camera_t>(options_.existing_camera_id) ==
+           kInvalidCameraId) ||
+      (options_.single_camera_per_folder &&
+       image_folders_.count(image_folder) == 0)) {
     if (options_.camera_params.empty()) {
       // Extract focal length.
       double focal_length = 0.0;
@@ -158,8 +183,7 @@ ImageReader::Status ImageReader::Next(Camera* camera, Image* image,
       }
 
       prev_camera_.InitializeWithId(prev_camera_.ModelId(), focal_length,
-                                    prev_camera_.Width(),
-                                    prev_camera_.Height());
+                                    bitmap->Width(), bitmap->Height());
     }
 
     prev_camera_.SetWidth(static_cast<size_t>(bitmap->Width()));
@@ -181,12 +205,13 @@ ImageReader::Status ImageReader::Next(Camera* camera, Image* image,
   if (!bitmap->ExifLatitude(&image->TvecPrior(0)) ||
       !bitmap->ExifLongitude(&image->TvecPrior(1)) ||
       !bitmap->ExifAltitude(&image->TvecPrior(2))) {
-    image->TvecPrior(0) = std::numeric_limits<double>::quiet_NaN();
-    image->TvecPrior(1) = std::numeric_limits<double>::quiet_NaN();
-    image->TvecPrior(2) = std::numeric_limits<double>::quiet_NaN();
+    image->TvecPrior().setConstant(std::numeric_limits<double>::quiet_NaN());
   }
 
   *camera = prev_camera_;
+
+  image_folders_.insert(image_folder);
+  prev_image_folder_ = image_folder;
 
   return Status::SUCCESS;
 }

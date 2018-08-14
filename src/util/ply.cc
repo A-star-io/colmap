@@ -1,18 +1,33 @@
-// COLMAP - Structure-from-Motion and Multi-View Stereo.
-// Copyright (C) 2017  Johannes L. Schoenberger <jsch at inf.ethz.ch>
+// Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
+// All rights reserved.
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
 //
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+//     * Redistributions of source code must retain the above copyright
+//       notice, this list of conditions and the following disclaimer.
 //
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//     * Redistributions in binary form must reproduce the above copyright
+//       notice, this list of conditions and the following disclaimer in the
+//       documentation and/or other materials provided with the distribution.
+//
+//     * Neither the name of ETH Zurich and UNC Chapel Hill nor the names of
+//       its contributors may be used to endorse or promote products derived
+//       from this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+//
+// Author: Johannes L. Schoenberger (jsch at inf.ethz.ch)
 
 #include "util/ply.h"
 
@@ -266,8 +281,9 @@ std::vector<PlyPoint> ReadPly(const std::string& path) {
   return points;
 }
 
-void WriteTextPly(const std::string& path, const std::vector<PlyPoint>& points,
-                  const bool write_normal, const bool write_rgb) {
+void WriteTextPlyPoints(const std::string& path,
+                        const std::vector<PlyPoint>& points,
+                        const bool write_normal, const bool write_rgb) {
   std::ofstream file(path);
   CHECK(file.is_open()) << path;
 
@@ -311,9 +327,9 @@ void WriteTextPly(const std::string& path, const std::vector<PlyPoint>& points,
   file.close();
 }
 
-void WriteBinaryPly(const std::string& path,
-                    const std::vector<PlyPoint>& points,
-                    const bool write_normal, const bool write_rgb) {
+void WriteBinaryPlyPoints(const std::string& path,
+                          const std::vector<PlyPoint>& points,
+                          const bool write_normal, const bool write_rgb) {
   std::fstream text_file(path, std::ios::out);
   CHECK(text_file.is_open()) << path;
 
@@ -361,6 +377,71 @@ void WriteBinaryPly(const std::string& path,
       WriteBinaryLittleEndian<uint8_t>(&binary_file, point.b);
     }
   }
+
+  binary_file.close();
+}
+
+void WriteTextPlyMesh(const std::string& path, const PlyMesh& mesh) {
+  std::fstream file(path, std::ios::out);
+  CHECK(file.is_open());
+
+  file << "ply" << std::endl;
+  file << "format ascii 1.0" << std::endl;
+  file << "element vertex " << mesh.vertices.size() << std::endl;
+  file << "property float x" << std::endl;
+  file << "property float y" << std::endl;
+  file << "property float z" << std::endl;
+  file << "element face " << mesh.faces.size() << std::endl;
+  file << "property list uchar int vertex_index" << std::endl;
+  file << "end_header" << std::endl;
+
+  for (const auto& vertex : mesh.vertices) {
+    file << vertex.x << " " << vertex.y << " " << vertex.z << std::endl;
+  }
+
+  for (const auto& face : mesh.faces) {
+    file << StringPrintf("3 %d %d %d", face.vertex_idx1, face.vertex_idx2,
+                         face.vertex_idx3)
+         << std::endl;
+  }
+}
+
+void WriteBinaryPlyMesh(const std::string& path, const PlyMesh& mesh) {
+  std::fstream text_file(path, std::ios::out);
+  CHECK(text_file.is_open());
+
+  text_file << "ply" << std::endl;
+  text_file << "format binary_little_endian 1.0" << std::endl;
+  text_file << "element vertex " << mesh.vertices.size() << std::endl;
+  text_file << "property float x" << std::endl;
+  text_file << "property float y" << std::endl;
+  text_file << "property float z" << std::endl;
+  text_file << "element face " << mesh.faces.size() << std::endl;
+  text_file << "property list uchar int vertex_index" << std::endl;
+  text_file << "end_header" << std::endl;
+  text_file.close();
+
+  std::fstream binary_file(path,
+                           std::ios::out | std::ios::binary | std::ios::app);
+  CHECK(binary_file.is_open()) << path;
+
+  for (const auto& vertex : mesh.vertices) {
+    WriteBinaryLittleEndian<float>(&binary_file, vertex.x);
+    WriteBinaryLittleEndian<float>(&binary_file, vertex.y);
+    WriteBinaryLittleEndian<float>(&binary_file, vertex.z);
+  }
+
+  for (const auto& face : mesh.faces) {
+    CHECK_LT(face.vertex_idx1, mesh.vertices.size());
+    CHECK_LT(face.vertex_idx2, mesh.vertices.size());
+    CHECK_LT(face.vertex_idx3, mesh.vertices.size());
+    const uint8_t kNumVertices = 3;
+    WriteBinaryLittleEndian<uint8_t>(&binary_file, kNumVertices);
+    WriteBinaryLittleEndian<int>(&binary_file, face.vertex_idx1);
+    WriteBinaryLittleEndian<int>(&binary_file, face.vertex_idx2);
+    WriteBinaryLittleEndian<int>(&binary_file, face.vertex_idx3);
+  }
+
   binary_file.close();
 }
 

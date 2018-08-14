@@ -1,18 +1,33 @@
-# COLMAP - Structure-from-Motion and Multi-View Stereo.
-# Copyright (C) 2017  Johannes L. Schoenberger <jsch at inf.ethz.ch>
+# Copyright (c) 2018, ETH Zurich and UNC Chapel Hill.
+# All rights reserved.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#     * Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#
+#     * Neither the name of ETH Zurich and UNC Chapel Hill nor the names of
+#       its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+# Author: Johannes L. Schoenberger (jsch at inf.ethz.ch)
 
 # This script is based on an original implementation by True Price.
 
@@ -55,12 +70,16 @@ CREATE_IMAGES_TABLE = """CREATE TABLE IF NOT EXISTS images (
     FOREIGN KEY(camera_id) REFERENCES cameras(camera_id))
 """.format(MAX_IMAGE_ID)
 
-CREATE_INLIER_MATCHES_TABLE = """CREATE TABLE IF NOT EXISTS inlier_matches (
+CREATE_TWO_VIEW_GEOMETRIES_TABLE = """
+CREATE TABLE IF NOT EXISTS two_view_geometries (
     pair_id INTEGER PRIMARY KEY NOT NULL,
     rows INTEGER NOT NULL,
     cols INTEGER NOT NULL,
     data BLOB,
-    config INTEGER NOT NULL)
+    config INTEGER NOT NULL,
+    F BLOB,
+    E BLOB,
+    H BLOB)
 """
 
 CREATE_KEYPOINTS_TABLE = """CREATE TABLE IF NOT EXISTS keypoints (
@@ -86,7 +105,7 @@ CREATE_ALL = "; ".join([
     CREATE_KEYPOINTS_TABLE,
     CREATE_DESCRIPTORS_TABLE,
     CREATE_MATCHES_TABLE,
-    CREATE_INLIER_MATCHES_TABLE,
+    CREATE_TWO_VIEW_GEOMETRIES_TABLE,
     CREATE_NAME_INDEX
 ])
 
@@ -134,8 +153,8 @@ class COLMAPDatabase(sqlite3.Connection):
             lambda: self.executescript(CREATE_DESCRIPTORS_TABLE)
         self.create_images_table = \
             lambda: self.executescript(CREATE_IMAGES_TABLE)
-        self.create_inlier_matches_table = \
-            lambda: self.executescript(CREATE_INLIER_MATCHES_TABLE)
+        self.create_two_view_geometries_table = \
+            lambda: self.executescript(CREATE_TWO_VIEW_GEOMETRIES_TABLE)
         self.create_keypoints_table = \
             lambda: self.executescript(CREATE_KEYPOINTS_TABLE)
         self.create_matches_table = \
@@ -144,7 +163,7 @@ class COLMAPDatabase(sqlite3.Connection):
 
     def add_camera(self, model, width, height, params,
                    prior_focal_length=False, camera_id=None):
-        params = np.asarray(params, np.float32)
+        params = np.asarray(params, np.float64)
         cursor = self.execute(
             "INSERT INTO cameras VALUES (?, ?, ?, ?, ?, ?)",
             (camera_id, model, width, height, array_to_blob(params),
@@ -174,19 +193,6 @@ class COLMAPDatabase(sqlite3.Connection):
             "INSERT INTO descriptors VALUES (?, ?, ?, ?)",
             (image_id,) + descriptors.shape + (array_to_blob(descriptors),))
 
-    def add_inlier_matches(self, image_id1, image_id2, matches, config=2):
-        assert(len(matches.shape) == 2)
-        assert(matches.shape[1] == 2)
-
-        if image_id1 > image_id2:
-            matches = matches[:,::-1]
-
-        pair_id = image_ids_to_pair_id(image_id1, image_id2)
-        matches = np.asarray(matches, np.uint32)
-        self.execute(
-            "INSERT INTO inlier_matches VALUES (?, ?, ?, ?, ?)",
-            (pair_id,) + matches.shape + (array_to_blob(matches), config))
-
     def add_matches(self, image_id1, image_id2, matches):
         assert(len(matches.shape) == 2)
         assert(matches.shape[1] == 2)
@@ -199,6 +205,24 @@ class COLMAPDatabase(sqlite3.Connection):
         self.execute(
             "INSERT INTO matches VALUES (?, ?, ?, ?)",
             (pair_id,) + matches.shape + (array_to_blob(matches),))
+
+    def add_two_view_geometry(self, image_id1, image_id2, matches,
+                              F=np.eye(3), E=np.eye(3), H=np.eye(3), config=2):
+        assert(len(matches.shape) == 2)
+        assert(matches.shape[1] == 2)
+
+        if image_id1 > image_id2:
+            matches = matches[:,::-1]
+
+        pair_id = image_ids_to_pair_id(image_id1, image_id2)
+        matches = np.asarray(matches, np.uint32)
+        F = np.asarray(F, dtype=np.float64)
+        E = np.asarray(E, dtype=np.float64)
+        H = np.asarray(H, dtype=np.float64)
+        self.execute(
+            "INSERT INTO two_view_geometries VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (pair_id,) + matches.shape + (array_to_blob(matches), config,
+             array_to_blob(F), array_to_blob(E), array_to_blob(H)))
 
 
 def example_usage():
@@ -276,13 +300,13 @@ def example_usage():
     rows = db.execute("SELECT * FROM cameras")
 
     camera_id, model, width, height, params, prior = next(rows)
-    params = blob_to_array(params, np.float32)
+    params = blob_to_array(params, np.float64)
     assert camera_id == camera_id1
     assert model == model1 and width == width1 and height == height1
     assert np.allclose(params, params1)
 
     camera_id, model, width, height, params, prior = next(rows)
-    params = blob_to_array(params, np.float32)
+    params = blob_to_array(params, np.float64)
     assert camera_id == camera_id2
     assert model == model2 and width == width2 and height == height2
     assert np.allclose(params, params2)
