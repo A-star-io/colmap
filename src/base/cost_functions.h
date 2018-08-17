@@ -36,8 +36,18 @@
 
 #include <ceres/ceres.h>
 #include <ceres/rotation.h>
+#include "util/types.h"
 
 namespace colmap {
+
+template <typename T>
+static inline T CeresCalcW(T u, T v) {
+  return ceres::sqrt(T(1) - u*v - v*v);
+}
+template <typename T>
+static inline T CeresCalcLen(T x, T y, T z) {
+  return ceres::sqrt(x*x + y*y + z*z);
+}
 
 // Standard bundle adjustment cost function for variable
 // camera pose and calibration and point parameters.
@@ -66,11 +76,11 @@ class BundleAdjustmentCostFunction {
     projection[2] += tvec[2];
 
     // Project to image plane.
-    projection[0] /= projection[2];
-    projection[1] /= projection[2];
+    //projection[0] /= projection[2];
+    //projection[1] /= projection[2];
 
     // Distort and transform to pixel space.
-    CameraModel::WorldToImage(camera_params, projection[0], projection[1],
+    CameraModel::WorldToImage(camera_params, projection[0], projection[1], projection[2],
                               &residuals[0], &residuals[1]);
 
     // Re-projection error.
@@ -194,11 +204,11 @@ class RigBundleAdjustmentCostFunction {
     projection[2] += tvec[2];
 
     // Project to image plane.
-    projection[0] /= projection[2];
-    projection[1] /= projection[2];
+    //projection[0] /= projection[2];
+    //projection[1] /= projection[2];
 
     // Distort and transform to pixel space.
-    CameraModel::WorldToImage(camera_params, projection[0], projection[1],
+    CameraModel::WorldToImage(camera_params, projection[0], projection[1], projection[2],
                               &residuals[0], &residuals[1]);
 
     // Re-projection error.
@@ -222,13 +232,13 @@ class RigBundleAdjustmentCostFunction {
 // and should be down-projected using `HomogeneousVectorParameterization`.
 class RelativePoseCostFunction {
  public:
-  RelativePoseCostFunction(const Eigen::Vector2d& x1, const Eigen::Vector2d& x2)
-      : x1_(x1(0)), y1_(x1(1)), x2_(x2(0)), y2_(x2(1)) {}
+RelativePoseCostFunction(const Eigen::Vector3d& x1, const Eigen::Vector3d& x2)
+        : x1_(x1), x2_(x2) {dist_tp_ = IsNormalized(x1) ? 3 : 2;}
 
-  static ceres::CostFunction* Create(const Eigen::Vector2d& x1,
-                                     const Eigen::Vector2d& x2) {
+  static ceres::CostFunction* Create(const Eigen::Vector3d& x1,
+                                     const Eigen::Vector3d& x2) {
     return (new ceres::AutoDiffCostFunction<RelativePoseCostFunction, 1, 4, 3>(
-        new RelativePoseCostFunction(x1, x2)));
+                    new RelativePoseCostFunction(x1, x2)));
   }
 
   template <typename T>
@@ -245,26 +255,60 @@ class RelativePoseCostFunction {
     // Essential matrix.
     const Eigen::Matrix<T, 3, 3> E = t_x * R;
 
-    // Homogeneous image coordinates.
-    const Eigen::Matrix<T, 3, 1> x1_h(T(x1_), T(y1_), T(1));
-    const Eigen::Matrix<T, 3, 1> x2_h(T(x2_), T(y2_), T(1));
+    if (dist_tp_ == 3) {
+      const Eigen::Matrix<T, 3, 1> x1_h(T(x1_(0)), T(x1_(1)), T(x1_(2)));
+      const Eigen::Matrix<T, 3, 1> x2_h(T(x2_(0)), T(x2_(1)), T(x1_(2)));
 
-    // Squared sampson error.
-    const Eigen::Matrix<T, 3, 1> Ex1 = E * x1_h;
-    const Eigen::Matrix<T, 3, 1> Etx2 = E.transpose() * x2_h;
-    const T x2tEx1 = x2_h.transpose() * Ex1;
-    residuals[0] = x2tEx1 * x2tEx1 /
-                   (Ex1(0) * Ex1(0) + Ex1(1) * Ex1(1) + Etx2(0) * Etx2(0) +
-                    Etx2(1) * Etx2(1));
+      // Squared sampson error.
+      const Eigen::Matrix<T, 3, 1> Ex1 = E * x1_h;
+      const Eigen::Matrix<T, 3, 1> Etx2 = E.transpose() * x2_h;
+      const T x2tEx1 = x2_h.transpose() * Ex1;
+                    residuals[0] = x2tEx1 * x2tEx1 /
+                    (Ex1(0) * Ex1(0) + Ex1(1) * Ex1(1) + Ex1(2)*Ex1(2) +
+                     Etx2(0) * Etx2(0) + Etx2(1) * Etx2(1) + Etx2(2)*Etx2(2));
 
+    } else {
+      // Homogeneous image coordinates.
+      const Eigen::Matrix<T, 3, 1> x1_h(T(x1_(0)/x1_(2)), T(x1_(1)/x1_(2)), T(1));
+      const Eigen::Matrix<T, 3, 1> x2_h(T(x2_(0)/x2_(2)), T(x2_(1)/x2_(2)), T(1));
+
+      // Squared sampson error.
+      const Eigen::Matrix<T, 3, 1> Ex1 = E * x1_h;
+      const Eigen::Matrix<T, 3, 1> Etx2 = E.transpose() * x2_h;
+      const T x2tEx1 = x2_h.transpose() * Ex1;
+      residuals[0] = x2tEx1 * x2tEx1 / (Ex1(0) * Ex1(0) + Ex1(1) * Ex1(1) +
+                                        Etx2(0) * Etx2(0) + Etx2(1) * Etx2(1));
+    }
     return true;
   }
 
  private:
-  const double x1_;
-  const double y1_;
-  const double x2_;
-  const double y2_;
+  int dist_tp_;
+  const Eigen::Vector3d x1_;
+  const Eigen::Vector3d x2_;
+};
+
+// Plus operation of 2D local parameterization of unit translation in 3D.
+struct UnitTranslationPlus {
+  template <typename T>
+  bool operator()(const T* x, const T* delta, T* x_plus_delta) const {
+    x_plus_delta[0] = x[0] + delta[0];
+    x_plus_delta[1] = x[1] + delta[1];
+    x_plus_delta[2] = x[2] + delta[2];
+
+    const T squared_norm = x_plus_delta[0] * x_plus_delta[0] +
+                           x_plus_delta[1] * x_plus_delta[1] +
+                           x_plus_delta[2] * x_plus_delta[2];
+
+    if (squared_norm > T(0)) {
+      const T norm = T(1.0) / ceres::sqrt(squared_norm);
+      x_plus_delta[0] *= norm;
+      x_plus_delta[1] *= norm;
+      x_plus_delta[2] *= norm;
+    }
+
+    return true;
+  }
 };
 
 }  // namespace colmap

@@ -46,6 +46,20 @@ https://demuc.de/colmap/. Executables for Linux/Unix/BSD are available at
 https://repology.org/metapackage/colmap/versions. To build COLMAP from source,
 please see https://colmap.github.io/install.html.
 
+Modifications:
+======
+
+Add support for central camera such as Spherical Camera. The key is to change the world coordinates to 3D representation, that is Vector2D -> Vector3D. There exist two cases: [x, y, 1], or [x, y, z] where x^2+y^2+z^2 = 1.
+
+For spherical cameras, focal length is set to the radius pixels and the princple point could be set in the center of the image which must lies on the equator of the sphere in the local camera cooridnate system.
+
+The example photo is as follows:
+![image](/doc/R0010160.jpg)
+
+and the reconstruction result is:
+![image](/doc/spherical_recon.jpg)
+![image](/doc/spherical_recon2.jpg)
+
 Getting Started
 ---------------
 

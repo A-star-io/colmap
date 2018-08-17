@@ -205,7 +205,6 @@ bool TwoViewGeometry::EstimateRelativePose(
   } else {
     return false;
   }
-
   qvec = RotationMatrixToQuaternion(R);
 
   if (points3D.empty()) {
