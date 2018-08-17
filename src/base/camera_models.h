@@ -1179,7 +1179,7 @@ void FOVCameraModel::Distortion(const T* extra_params, const T &u, const T &v,
 }
 
 template <typename T>
-void FOVCameraModel::Undistortion(const T* extra_params, const T u, const T v,
+void FOVCameraModel::Undistortion(const T* extra_params, const T &u, const T &v,
                                   T* du, T* dv) {
   T omega = extra_params[0];
 
@@ -1503,7 +1503,7 @@ static inline bool IsCentralCameraModel() {
 }
 
 struct SphericalCentralCameraModel: public BaseCameraModel<SphericalCentralCameraModel> {
-  CAMERA_MODEL_DEFINITIONS(central_model_start_id+1, 3)
+  CAMERA_MODEL_DEFINITIONS(central_model_start_id+1, "SPHERICAL_CENTRAL", 3)
 };
 
 std::string SphericalCentralCameraModel::InitializeParamsInfo() {
@@ -1520,6 +1520,11 @@ std::vector<size_t> SphericalCentralCameraModel::InitializePrincipalPointIdxs() 
 
 std::vector<size_t> SphericalCentralCameraModel::InitializeExtraParamsIdxs() {
   return {};
+}
+
+std::vector<double> SphericalCentralCameraModel::InitializeParams(
+    const double focal_length, const size_t width, const size_t height) {
+  return {focal_length, width / 2.0, height / 2.0};
 }
 
 template <typename T>
