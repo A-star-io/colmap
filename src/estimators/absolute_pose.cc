@@ -38,9 +38,9 @@
 namespace colmap {
 namespace {
 
-Eigen::Vector3d LiftImagePoint(const Eigen::Vector2d& point) {
-  return point.homogeneous() / std::sqrt(point.squaredNorm() + 1);
-}
+//Eigen::Vector3d LiftImagePoint(const Eigen::Vector2d& point) {
+//  return point.homogeneous() / std::sqrt(point.squaredNorm() + 1);
+//}
 
 }  // namespace
 
@@ -201,7 +201,7 @@ void EPNPEstimator::Residuals(const std::vector<X_t>& points2D,
   ComputeSquaredReprojectionError(points2D, points3D, proj_matrix, residuals);
 }
 
-bool EPnPEstimator::ComputePose(const std::vector<Eigen::Vector3d>& points2D,
+bool EPNPEstimator::ComputePose(const std::vector<Eigen::Vector3d>& points2D,
                                 const std::vector<Eigen::Vector3d>& points3D,
                                 Eigen::Matrix3x4d* proj_matrix) {
   points2D_ = &points2D;
@@ -307,21 +307,21 @@ bool EPNPEstimator::ComputeBarycentricCoordinates() {
 }
 
 
-Eigen::Matrix<double, Eigen::Dynamic, 12> EPnPEstimator::ComputeM() {
-  Eigen::Matrix<double, Eigen::Dynamic, 12> M(3 * points2D_.size(), 12);
-  for (size_t i = 0; i < points3D_.size(); ++i) {
+Eigen::Matrix<double, Eigen::Dynamic, 12> EPNPEstimator::ComputeM() {
+  Eigen::Matrix<double, Eigen::Dynamic, 12> M(3 * points2D_->size(), 12);
+  for (size_t i = 0; i < points3D_->size(); ++i) {
     for (size_t j = 0; j < 4; ++j) {
       M(3 * i, 3 * j) = 0.0;
-      M(3 * i, 3 * j + 1) = -alphas_[i][j] * points2D_[i].z();
-      M(3 * i, 3 * j + 2) = alphas_[i][j] * points2D_[i].y();
+      M(3 * i, 3 * j + 1) = -alphas_[i][j] * (*points2D_)[i].z();
+      M(3 * i, 3 * j + 2) = alphas_[i][j] * (*points2D_)[i].y();
 
-      M(3 * i + 1, 3 * j) = alphas_[i][j] * points2D_[i].z();
+      M(3 * i + 1, 3 * j) = alphas_[i][j] * (*points2D_)[i].z();
       M(3 * i + 1, 3 * j + 1) = 0.0;
-      M(3 * i + 1, 3 * j + 2) = -alphas_[i][j] * points2D_[i].x();
+      M(3 * i + 1, 3 * j + 2) = -alphas_[i][j] * (*points2D_)[i].x();
 
 
-      M(3 * i + 2, 3 * j) = -alphas_[i][j] * points2D_[i].y();
-      M(3 * i + 2, 3 * j + 1) = alphas_[i][j] * points2D_[i].x();
+      M(3 * i + 2, 3 * j) = -alphas_[i][j] * (*points2D_)[i].y();
+      M(3 * i + 2, 3 * j + 1) = alphas_[i][j] * (*points2D_)[i].x();
       M(3 * i + 2, 3 * j + 2) = 0;
 
     }

@@ -135,11 +135,11 @@ class BundleAdjustmentConstantPoseCostFunction {
     projection[2] += T(tz_);
 
     // Project to image plane.
-    projection[0] /= projection[2];
-    projection[1] /= projection[2];
+    //projection[0] /= projection[2];
+    //projection[1] /= projection[2];
 
     // Distort and transform to pixel space.
-    CameraModel::WorldToImage(camera_params, projection[0], projection[1],
+    CameraModel::WorldToImage(camera_params, projection[0], projection[1], projection[2],
                               &residuals[0], &residuals[1]);
 
     // Re-projection error.

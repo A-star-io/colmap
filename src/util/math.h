@@ -40,6 +40,8 @@
 #include <stdexcept>
 #include <vector>
 
+#include <Eigen/Core>
+
 #include "util/logging.h"
 
 #ifndef M_PI
