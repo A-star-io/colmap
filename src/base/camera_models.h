@@ -350,6 +350,14 @@ struct ThinPrismFisheyeCameraModel
   CAMERA_MODEL_DEFINITIONS(10, "THIN_PRISM_FISHEYE", 12)
 };
 
+// added by daley
+// Spherical camera model
+// f, cx, cy
+struct SphericalCentralCameraModel
+    : public BaseCameraModel<SphericalCentralCameraModel> {
+  CAMERA_MODEL_DEFINITIONS(11, "SPHERICAL_CENTRAL", 3)
+};
+
 // Check whether camera model with given name or identifier exists.
 bool ExistsCameraModelWithName(const std::string& model_name);
 bool ExistsCameraModelWithId(const int model_id);
@@ -1496,15 +1504,11 @@ void ThinPrismFisheyeCameraModel::Distortion(const T* extra_params, const T &u,
 // added by daley
 // Spherical camera model
 // f, cx, cy
-static const int central_model_start_id = 100;
+static const int central_model_start_id = 10;
 template <typename CameraModel>
 static inline bool IsCentralCameraModel() {
   return CameraModel::model_id > central_model_start_id;
 }
-
-struct SphericalCentralCameraModel: public BaseCameraModel<SphericalCentralCameraModel> {
-  CAMERA_MODEL_DEFINITIONS(central_model_start_id+1, "SPHERICAL_CENTRAL", 3)
-};
 
 std::string SphericalCentralCameraModel::InitializeParamsInfo() {
   return "f, cx, cy";
