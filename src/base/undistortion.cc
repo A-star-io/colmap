@@ -677,7 +677,7 @@ Camera UndistortCamera(const UndistortCameraOptions& options,
 
   // Copy focal length parameters.
   const std::vector<size_t>& focal_length_idxs = camera.FocalLengthIdxs();
-  CHECK_LE(focal_length_idxs.size(), 2)
+  CHECK_LE(focal_length_idxs.size(), 2UL)
       << "Not more than two focal length parameters supported.";
   if (focal_length_idxs.size() == 1) {
     undistorted_camera.SetFocalLengthX(camera.FocalLength());
@@ -737,14 +737,14 @@ Camera UndistortCamera(const UndistortCameraOptions& options,
 
     for (size_t y = roi_min_y; y < roi_max_y; ++y) {
       // Left border.
-      const Eigen::Vector2d world_point1 =
+      const Eigen::Vector3d world_point1 =
           camera.ImageToWorld(Eigen::Vector2d(0.5, y + 0.5));
       const Eigen::Vector2d undistorted_point1 =
           undistorted_camera.WorldToImage(world_point1);
       left_min_x = std::min(left_min_x, undistorted_point1(0));
       left_max_x = std::max(left_max_x, undistorted_point1(0));
       // Right border.
-      const Eigen::Vector2d world_point2 =
+      const Eigen::Vector3d world_point2 =
           camera.ImageToWorld(Eigen::Vector2d(camera.Width() - 0.5, y + 0.5));
       const Eigen::Vector2d undistorted_point2 =
           undistorted_camera.WorldToImage(world_point2);
@@ -761,14 +761,14 @@ Camera UndistortCamera(const UndistortCameraOptions& options,
 
     for (size_t x = roi_min_x; x < roi_max_x; ++x) {
       // Top border.
-      const Eigen::Vector2d world_point1 =
+      const Eigen::Vector3d world_point1 =
           camera.ImageToWorld(Eigen::Vector2d(x + 0.5, 0.5));
       const Eigen::Vector2d undistorted_point1 =
           undistorted_camera.WorldToImage(world_point1);
       top_min_y = std::min(top_min_y, undistorted_point1(1));
       top_max_y = std::max(top_max_y, undistorted_point1(1));
       // Bottom border.
-      const Eigen::Vector2d world_point2 =
+      const Eigen::Vector3d world_point2 =
           camera.ImageToWorld(Eigen::Vector2d(x + 0.5, camera.Height() - 0.5));
       const Eigen::Vector2d undistorted_point2 =
           undistorted_camera.WorldToImage(world_point2);
@@ -845,8 +845,8 @@ void UndistortImage(const UndistortCameraOptions& options,
                     const Bitmap& distorted_bitmap,
                     const Camera& distorted_camera, Bitmap* undistorted_bitmap,
                     Camera* undistorted_camera) {
-  CHECK_EQ(distorted_camera.Width(), distorted_bitmap.Width());
-  CHECK_EQ(distorted_camera.Height(), distorted_bitmap.Height());
+  CHECK_EQ(distorted_camera.Width(), static_cast<unsigned long>(distorted_bitmap.Width()));
+  CHECK_EQ(distorted_camera.Height(), static_cast<unsigned long>(distorted_bitmap.Height()));
 
   *undistorted_camera = UndistortCamera(options, distorted_camera);
   undistorted_bitmap->Allocate(static_cast<int>(undistorted_camera->Width()),
@@ -948,10 +948,10 @@ void RectifyAndUndistortStereoImages(
     const Eigen::Vector3d& tvec, Bitmap* undistorted_image1,
     Bitmap* undistorted_image2, Camera* undistorted_camera,
     Eigen::Matrix4d* Q) {
-  CHECK_EQ(distorted_camera1.Width(), distorted_image1.Width());
-  CHECK_EQ(distorted_camera1.Height(), distorted_image1.Height());
-  CHECK_EQ(distorted_camera2.Width(), distorted_image2.Width());
-  CHECK_EQ(distorted_camera2.Height(), distorted_image2.Height());
+  CHECK_EQ(distorted_camera1.Width(), static_cast<unsigned long>(distorted_image1.Width()));
+  CHECK_EQ(distorted_camera1.Height(), static_cast<unsigned long>(distorted_image1.Height()));
+  CHECK_EQ(distorted_camera2.Width(), static_cast<unsigned long>(distorted_image2.Width()));
+  CHECK_EQ(distorted_camera2.Height(), static_cast<unsigned long>(distorted_image2.Height()));
 
   *undistorted_camera = UndistortCamera(options, distorted_camera1);
   undistorted_image1->Allocate(static_cast<int>(undistorted_camera->Width()),

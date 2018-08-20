@@ -1937,7 +1937,7 @@ void Reconstruction::ResetTriObservations(const image_t image_id,
       const image_pair_t pair_id =
           Database::ImagePairToPairId(image_id, corr.image_id);
       image_pairs_[pair_id].first -= 1;
-      CHECK_GE(image_pairs_[pair_id].first, 0)
+      CHECK_GE(image_pairs_[pair_id].first, 0UL)
           << "The scene graph graph must not contain duplicate matches";
     }
   }

@@ -144,8 +144,8 @@ MatrixType ReadDynamicMatrixBlob(sqlite3_stmt* sql_stmt, const int rc,
     const size_t cols =
         static_cast<size_t>(sqlite3_column_int64(sql_stmt, col + 1));
 
-    CHECK_GE(rows, 0);
-    CHECK_GE(cols, 0);
+    CHECK_GE(rows, 0UL);
+    CHECK_GE(cols, 0UL);
     matrix = MatrixType(rows, cols);
 
     const size_t num_bytes =

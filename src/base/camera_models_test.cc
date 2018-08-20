@@ -37,29 +37,23 @@
 using namespace colmap;
 
 template <typename CameraModel>
-void TestWorldToImageToWorld(const std::vector<double> params, const double u0,
-                             const double v0) {
-  double u, v, x, y, xx, yy;
-  CameraModel::WorldToImage(params.data(), u0, v0, &x, &y);
-  CameraModelWorldToImage(CameraModel::model_id, params, u0, v0, &xx, &yy);
-  BOOST_CHECK_EQUAL(x, xx);
-  BOOST_CHECK_EQUAL(y, yy);
-  CameraModel::ImageToWorld(params.data(), x, y, &u, &v);
-  BOOST_CHECK_LT(std::abs(u - u0), 1e-6);
-  BOOST_CHECK_LT(std::abs(v - v0), 1e-6);
+void TestWorldToImageToWorld(const std::vector<double> camera_params,
+                             const double u0, const double v0) {
+  double u, v, w=1, x, y;
+  CameraModel::WorldToImage(camera_params.data(), u0, v0, w, &x, &y);
+  CameraModel::ImageToWorld(camera_params.data(), x, y, &u, &v, &w);
+  BOOST_CHECK(std::abs(u/w - u0) < 1e-6);
+  BOOST_CHECK(std::abs(v/w - v0) < 1e-6);
 }
 
 template <typename CameraModel>
-void TestImageToWorldToImage(const std::vector<double> params, const double x0,
-                             const double y0) {
-  double u, v, x, y, uu, vv;
-  CameraModel::ImageToWorld(params.data(), x0, y0, &u, &v);
-  CameraModelImageToWorld(CameraModel::model_id, params, x0, y0, &uu, &vv);
-  BOOST_CHECK_EQUAL(u, uu);
-  BOOST_CHECK_EQUAL(v, vv);
-  CameraModel::WorldToImage(params.data(), u, v, &x, &y);
-  BOOST_CHECK_LT(std::abs(x - x0), 1e-6);
-  BOOST_CHECK_LT(std::abs(y - y0), 1e-6);
+void TestImageToWorldToImage(const std::vector<double> camera_params,
+                             const double x0, const double y0) {
+  double u, v, w=1, x, y;
+  CameraModel::ImageToWorld(camera_params.data(), x0, y0, &u, &v, &w);
+  CameraModel::WorldToImage(camera_params.data(), u, v, w, &x, &y);
+  BOOST_CHECK(std::abs(x - x0) < 1e-6);
+  BOOST_CHECK(std::abs(y - y0) < 1e-6);
 }
 
 template <typename CameraModel>
@@ -215,4 +209,9 @@ BOOST_AUTO_TEST_CASE(TestThinPrismFisheye) {
                                 -0.471,  0.223,   -0.001,  0.001,
                                 0.001,   0.02,    -0.02,   0.001};
   TestModel<ThinPrismFisheyeCameraModel>(params);
+}
+
+BOOST_AUTO_TEST_CASE(TestSphericalCentral) {
+  std::vector<double> params = {651.123, 386.123, 511.123};
+  TestModel<SphericalCentralCameraModel>(params);
 }

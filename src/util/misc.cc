@@ -64,7 +64,7 @@ bool HasFileExtension(const std::string& file_name, const std::string& ext) {
 void SplitFileExtension(const std::string& path, std::string* root,
                         std::string* ext) {
   const auto parts = StringSplit(path, ".");
-  CHECK_GT(parts.size(), 0);
+  CHECK_GT(parts.size(), 0UL);
   if (parts.size() == 1) {
     *root = parts[0];
     *ext = "";

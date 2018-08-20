@@ -38,6 +38,7 @@
 #include "base/pose.h"
 #include "util/logging.h"
 #include "util/math.h"
+#include <iostream>
 
 namespace colmap {
 namespace {
@@ -171,8 +172,8 @@ void DecomposeHomographyMatrix(const Eigen::Matrix3d& H,
 void PoseFromHomographyMatrix(const Eigen::Matrix3d& H,
                               const Eigen::Matrix3d& K1,
                               const Eigen::Matrix3d& K2,
-                              const std::vector<Eigen::Vector2d>& points1,
-                              const std::vector<Eigen::Vector2d>& points2,
+                              const std::vector<Eigen::Vector3d>& points1,
+                              const std::vector<Eigen::Vector3d>& points2,
                               Eigen::Matrix3d* R, Eigen::Vector3d* t,
                               Eigen::Vector3d* n,
                               std::vector<Eigen::Vector3d>* points3D) {

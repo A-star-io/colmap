@@ -40,6 +40,8 @@
 #include <stdexcept>
 #include <vector>
 
+#include <Eigen/Core>
+
 #include "util/logging.h"
 
 #ifndef M_PI
@@ -314,6 +316,16 @@ T2 TruncateCast(const T1 value) {
   return std::min(
       static_cast<T1>(std::numeric_limits<T2>::max()),
       std::max(static_cast<T1>(std::numeric_limits<T2>::min()), value));
+}
+
+template <typename T>
+T calc_w(T u, T v) {
+  return sqrt(1 - u*u- v*v);
+}
+
+template <typename T>
+Eigen::Matrix<T,3,1> calc_w_vec(T u, T v) {
+  return (Eigen::Matrix<T,3,1>() << u, v, calc_w(u, v)).finished();
 }
 
 }  // namespace colmap

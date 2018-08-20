@@ -108,7 +108,7 @@ struct TwoViewGeometry {
     RANSACOptions ransac_options;
 
     void Check() const {
-      CHECK_GE(min_num_inliers, 0);
+      CHECK_GE(min_num_inliers, 0UL);
       CHECK_GE(min_E_F_inlier_ratio, 0);
       CHECK_LE(min_E_F_inlier_ratio, 1);
       CHECK_GE(max_H_inlier_ratio, 0);

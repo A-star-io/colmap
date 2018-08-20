@@ -62,8 +62,8 @@ struct ReconstructionAlignmentEstimator {
   // Estimate 3D similarity transform from corresponding projection centers.
   std::vector<M_t> Estimate(const std::vector<X_t>& images1,
                             const std::vector<Y_t>& images2) const {
-    CHECK_GE(images1.size(), 3);
-    CHECK_GE(images2.size(), 3);
+    CHECK_GE(images1.size(), 3UL);
+    CHECK_GE(images2.size(), 3UL);
 
     std::vector<Eigen::Vector3d> proj_centers1(images1.size());
     std::vector<Eigen::Vector3d> proj_centers2(images2.size());

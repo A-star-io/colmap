@@ -369,7 +369,7 @@ void IncrementalMapperController::Reconstruct(
   // Is there a sub-model before we start the reconstruction? I.e. the user
   // has imported an existing reconstruction.
   const bool initial_reconstruction_given = reconstruction_manager_->Size() > 0;
-  CHECK_LE(reconstruction_manager_->Size(), 1) << "Can only resume from a "
+  CHECK_LE(reconstruction_manager_->Size(), 1UL) << "Can only resume from a "
                                                   "single reconstruction, but "
                                                   "multiple are given.";
 

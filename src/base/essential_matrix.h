@@ -70,8 +70,8 @@ void DecomposeEssentialMatrix(const Eigen::Matrix3d& E, Eigen::Matrix3d* R1,
 // @param t            Most probable 3x1 translation vector.
 // @param points3D     Triangulated 3D points infront of camera.
 void PoseFromEssentialMatrix(const Eigen::Matrix3d& E,
-                             const std::vector<Eigen::Vector2d>& points1,
-                             const std::vector<Eigen::Vector2d>& points2,
+                             const std::vector<Eigen::Vector3d>& points1,
+                             const std::vector<Eigen::Vector3d>& points2,
                              Eigen::Matrix3d* R, Eigen::Vector3d* t,
                              std::vector<Eigen::Vector3d>* points3D);
 
@@ -112,11 +112,11 @@ Eigen::Matrix3d EssentialMatrixFromAbsolutePoses(
 // @param point2           Corresponding 2D point in second image.
 // @param optimal_point1   Estimated optimal image point in the first image.
 // @param optimal_point2   Estimated optimal image point in the second image.
-void FindOptimalImageObservations(const Eigen::Matrix3d& E,
-                                  const Eigen::Vector2d& point1,
-                                  const Eigen::Vector2d& point2,
-                                  Eigen::Vector2d* optimal_point1,
-                                  Eigen::Vector2d* optimal_point2);
+/* void FindOptimalImageObservations(const Eigen::Matrix3d& E, */
+/*                                   const Eigen::Vector3d& point1, */
+/*                                   const Eigen::Vector3d& point2, */
+/*                                   Eigen::Vector3d* optimal_point1, */
+/*                                   Eigen::Vector3d* optimal_point2); */
 
 // Compute the location of the epipole in homogeneous coordinates.
 //
@@ -150,11 +150,10 @@ Eigen::Matrix3d InvertEssentialMatrix(const Eigen::Matrix3d& matrix);
 //
 // @return                 Flag indicating if solution is usable.
 bool RefineEssentialMatrix(const ceres::Solver::Options& options,
-                           const std::vector<Eigen::Vector2d>& points1,
-                           const std::vector<Eigen::Vector2d>& points2,
-                           const std::vector<char>& inlier_mask,
+                           const std::vector<Eigen::Vector3d>& points1,
+                           const std::vector<Eigen::Vector3d>& points2,
+                           const std::vector<bool>& inlier_mask,
                            Eigen::Matrix3d* E);
-
 }  // namespace colmap
 
 #endif  // COLMAP_SRC_BASE_ESSENTIAL_MATRIX_H_

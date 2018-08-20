@@ -97,7 +97,7 @@ void PatchMatch::Check() const {
 
   CHECK(!options_.gpu_index.empty());
   const std::vector<int> gpu_indices = CSVToVector<int>(options_.gpu_index);
-  CHECK_EQ(gpu_indices.size(), 1);
+  CHECK_EQ(gpu_indices.size(), 1UL);
   CHECK_GE(gpu_indices[0], -1);
 
   CHECK_NOTNULL(problem_.images);
@@ -108,7 +108,7 @@ void PatchMatch::Check() const {
     CHECK_EQ(problem_.normal_maps->size(), problem_.images->size());
   }
 
-  CHECK_GT(problem_.src_image_idxs.size(), 0);
+  CHECK_GT(problem_.src_image_idxs.size(), 0UL);
 
   // Check that there are no duplicate images and that the reference image
   // is not defined as a source image.
@@ -120,14 +120,14 @@ void PatchMatch::Check() const {
   // Check that input data is well-formed.
   for (const int image_idx : unique_image_idxs) {
     CHECK_GE(image_idx, 0) << image_idx;
-    CHECK_LT(image_idx, problem_.images->size()) << image_idx;
+    CHECK_LT(static_cast<unsigned long>(image_idx), problem_.images->size()) << image_idx;
 
     const Image& image = problem_.images->at(image_idx);
     CHECK_GT(image.GetBitmap().Width(), 0) << image_idx;
     CHECK_GT(image.GetBitmap().Height(), 0) << image_idx;
     CHECK(image.GetBitmap().IsGrey()) << image_idx;
-    CHECK_EQ(image.GetWidth(), image.GetBitmap().Width()) << image_idx;
-    CHECK_EQ(image.GetHeight(), image.GetBitmap().Height()) << image_idx;
+    CHECK_EQ(image.GetWidth(), static_cast<unsigned long>(image.GetBitmap().Width())) << image_idx;
+    CHECK_EQ(image.GetHeight(), static_cast<unsigned long>(image.GetBitmap().Height())) << image_idx;
 
     // Make sure, the calibration matrix only contains fx, fy, cx, cy.
     CHECK_LT(std::abs(image.GetK()[1] - 0.0f), 1e-6f) << image_idx;
@@ -137,7 +137,7 @@ void PatchMatch::Check() const {
     CHECK_LT(std::abs(image.GetK()[8] - 1.0f), 1e-6f) << image_idx;
 
     if (options_.geom_consistency) {
-      CHECK_LT(image_idx, problem_.depth_maps->size()) << image_idx;
+      CHECK_LT(static_cast<unsigned long>(image_idx), problem_.depth_maps->size()) << image_idx;
       const DepthMap& depth_map = problem_.depth_maps->at(image_idx);
       CHECK_EQ(image.GetWidth(), depth_map.GetWidth()) << image_idx;
       CHECK_EQ(image.GetHeight(), depth_map.GetHeight()) << image_idx;

@@ -105,14 +105,14 @@ void Model::ReadFromPMVS(const std::string& path) {
 }
 
 int Model::GetImageIdx(const std::string& name) const {
-  CHECK_GT(image_name_to_idx_.count(name), 0)
+  CHECK_GT(image_name_to_idx_.count(name), 0UL)
       << "Image with name `" << name << "` does not exist";
   return image_name_to_idx_.at(name);
 }
 
 std::string Model::GetImageName(const int image_idx) const {
   CHECK_GE(image_idx, 0);
-  CHECK_LT(image_idx, image_names_.size());
+  CHECK_LT(static_cast<unsigned long>(image_idx), image_names_.size());
   return image_names_.at(image_idx);
 }
 
@@ -344,7 +344,7 @@ bool Model::ReadFromBundlerPMVS(const std::string& path) {
       int feature_idx;
       float imx, imy;
       file >> point.track[i] >> feature_idx >> imx >> imy;
-      CHECK_LT(point.track[i], images.size());
+      CHECK_LT(static_cast<unsigned long>(point.track[i]), images.size());
     }
   }
 
@@ -415,7 +415,7 @@ bool Model::ReadFromRawPMVS(const std::string& path) {
   int num_images;
   vis_dat_file >> num_images;
   CHECK_GE(num_images, 0);
-  CHECK_EQ(num_images, images.size());
+  CHECK_EQ(static_cast<unsigned long>(num_images), images.size());
 
   pmvs_vis_dat_.resize(num_images);
   for (int i = 0; i < num_images; ++i) {

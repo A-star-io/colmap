@@ -614,7 +614,7 @@ SiftFeatureMatcher::SiftFeatureMatcher(const SiftMatchingOptions& options,
   CHECK_GT(num_threads, 0);
 
   std::vector<int> gpu_indices = CSVToVector<int>(options_.gpu_index);
-  CHECK_GT(gpu_indices.size(), 0);
+  CHECK_GT(gpu_indices.size(), 0UL);
 
 #ifdef CUDA_ENABLED
   if (options_.use_gpu && gpu_indices.size() == 1 && gpu_indices[0] == -1) {
@@ -834,7 +834,7 @@ void SiftFeatureMatcher::Match(
                                  output.two_view_geometry);
   }
 
-  CHECK_EQ(output_queue_.Size(), 0);
+  CHECK_EQ(output_queue_.Size(), 0UL);
 }
 
 ExhaustiveFeatureMatcher::ExhaustiveFeatureMatcher(

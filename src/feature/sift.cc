@@ -81,8 +81,8 @@ Eigen::MatrixXi ComputeSiftDistanceMatrix(
   if (guided_filter != nullptr) {
     CHECK_NOTNULL(keypoints1);
     CHECK_NOTNULL(keypoints2);
-    CHECK_EQ(keypoints1->size(), descriptors1.rows());
-    CHECK_EQ(keypoints2->size(), descriptors2.rows());
+    CHECK_EQ(keypoints1->size(), static_cast<unsigned long>(descriptors1.rows()));
+    CHECK_EQ(keypoints2->size(), static_cast<unsigned long>(descriptors2.rows()));
   }
 
   const Eigen::Matrix<int, Eigen::Dynamic, 128> descriptors1_int =
@@ -608,7 +608,7 @@ bool CreateSiftGPUExtractor(const SiftExtractionOptions& options,
   std::unique_lock<std::mutex> lock(mutex);
 
   std::vector<int> gpu_indices = CSVToVector<int>(options.gpu_index);
-  CHECK_EQ(gpu_indices.size(), 1) << "SiftGPU can only run on one GPU";
+  CHECK_EQ(gpu_indices.size(), 1UL) << "SiftGPU can only run on one GPU";
 
   std::vector<std::string> sift_gpu_args;
 
@@ -773,7 +773,7 @@ void LoadSiftFeaturesFromTextFile(const std::string& path,
   std::getline(header_line_stream >> std::ws, item, ' ');
   const size_t dim = std::stoul(item);
 
-  CHECK_EQ(dim, 128) << "SIFT features must have 128 dimensions";
+  CHECK_EQ(dim, 128UL) << "SIFT features must have 128 dimensions";
 
   keypoints->resize(num_features);
   descriptors->resize(num_features, dim);
@@ -886,7 +886,7 @@ bool CreateSiftGPUMatcher(const SiftMatchingOptions& match_options,
 
   const std::vector<int> gpu_indices =
       CSVToVector<int>(match_options.gpu_index);
-  CHECK_EQ(gpu_indices.size(), 1) << "SiftGPU can only run on one GPU";
+  CHECK_EQ(gpu_indices.size(), 1UL) << "SiftGPU can only run on one GPU";
 
   SiftGPU sift_gpu;
   sift_gpu.SetVerbose(0);
@@ -979,7 +979,7 @@ void MatchSiftFeaturesGPU(const SiftMatchingOptions& match_options,
               << std::endl;
     matches->clear();
   } else {
-    CHECK_LE(num_matches, matches->size());
+    CHECK_LE(static_cast<unsigned long>(num_matches), matches->size());
     matches->resize(num_matches);
   }
 }
@@ -1009,7 +1009,7 @@ void MatchGuidedSiftFeaturesGPU(const SiftMatchingOptions& match_options,
 
   if (descriptors1 != nullptr) {
     CHECK_NOTNULL(keypoints1);
-    CHECK_EQ(descriptors1->rows(), keypoints1->size());
+    CHECK_EQ(static_cast<unsigned long>(descriptors1->rows()), keypoints1->size());
     CHECK_EQ(descriptors1->cols(), 128);
     WarnIfMaxNumMatchesReachedGPU(*sift_match_gpu, *descriptors1);
     const size_t kIndex = 0;
@@ -1022,7 +1022,7 @@ void MatchGuidedSiftFeaturesGPU(const SiftMatchingOptions& match_options,
 
   if (descriptors2 != nullptr) {
     CHECK_NOTNULL(keypoints2);
-    CHECK_EQ(descriptors2->rows(), keypoints2->size());
+    CHECK_EQ(static_cast<unsigned long>(descriptors2->rows()), keypoints2->size());
     CHECK_EQ(descriptors2->cols(), 128);
     WarnIfMaxNumMatchesReachedGPU(*sift_match_gpu, *descriptors2);
     const size_t kIndex = 1;
@@ -1073,7 +1073,7 @@ void MatchGuidedSiftFeaturesGPU(const SiftMatchingOptions& match_options,
               << std::endl;
     two_view_geometry->inlier_matches.clear();
   } else {
-    CHECK_LE(num_matches, two_view_geometry->inlier_matches.size());
+    CHECK_LE(static_cast<unsigned long>(num_matches), two_view_geometry->inlier_matches.size());
     two_view_geometry->inlier_matches.resize(num_matches);
   }
 }

@@ -182,7 +182,7 @@ void ImportPMVSWorkspace(const Workspace& workspace,
 
     std::vector<int> image_idxs;
     if (num_images == -1) {
-      CHECK_EQ(elems.size(), 4);
+      CHECK_EQ(elems.size(), 4UL);
       const int range_lower = std::stoull(elems[2]);
       const int range_upper = std::stoull(elems[3]);
       CHECK_LT(range_lower, range_upper);
@@ -190,7 +190,7 @@ void ImportPMVSWorkspace(const Workspace& workspace,
       image_idxs.resize(num_images);
       std::iota(image_idxs.begin(), image_idxs.end(), range_lower);
     } else {
-      CHECK_EQ(num_images + 2, elems.size());
+      CHECK_EQ(static_cast<unsigned long>(num_images + 2), elems.size());
       image_idxs.reserve(num_images);
       for (size_t i = 2; i < elems.size(); ++i) {
         const int image_idx = std::stoull(elems[i]);

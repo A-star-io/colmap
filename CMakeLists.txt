@@ -140,15 +140,23 @@ else()
 endif()
 
 if(IS_MSVC)
+    message(STATUS "Setting MSVC compiler options")
     add_definitions("-DGLOG_NO_ABBREVIATED_SEVERITIES")
     add_definitions("-DGL_GLEXT_PROTOTYPES")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
 endif()
 
 if(IS_GNU)
+    message(STATUS "Setting GNU compiler options")
     # Hide incorrect warnings for uninitialized Eigen variables under GCC.
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-maybe-uninitialized")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-maybe-uninitialized")
+endif()
+
+if(IS_CLANG)
+    message(STATUS "Setting Clang compiler options")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 endif()
 
 if(IS_DEBUG)
