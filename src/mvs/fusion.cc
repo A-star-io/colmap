@@ -294,7 +294,7 @@ void StereoFusion::Run() {
 }
 
 void StereoFusion::Fuse() {
-  CHECK_EQ(fusion_queue_.size(), 1);
+  CHECK_EQ(fusion_queue_.size(), 1UL);
 
   Eigen::Vector4f fused_ref_point = Eigen::Vector4f::Zero();
   Eigen::Vector3f fused_ref_normal = Eigen::Vector3f::Zero();

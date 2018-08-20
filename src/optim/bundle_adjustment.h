@@ -279,11 +279,12 @@ class RigBundleAdjuster : public BundleAdjuster {
   void SetUp(Reconstruction* reconstruction,
              std::vector<CameraRig>* camera_rigs,
              ceres::LossFunction* loss_function);
-  void TearDown(Reconstruction* reconstruction,
-                const std::vector<CameraRig>& camera_rigs);
+  //void TearDown(Reconstruction* reconstruction,
+  //              const std::vector<CameraRig>& camera_rigs);
+  void TearDown(Reconstruction* reconstruction);
 
   void AddImageToProblem(const image_t image_id, Reconstruction* reconstruction,
-                         std::vector<CameraRig>* camera_rigs,
+                         //std::vector<CameraRig>* camera_rigs,
                          ceres::LossFunction* loss_function);
 
   void AddPointToProblem(const point3D_t point3D_id,
@@ -293,7 +294,7 @@ class RigBundleAdjuster : public BundleAdjuster {
   void ComputeCameraRigPoses(const Reconstruction& reconstruction,
                              const std::vector<CameraRig>& camera_rigs);
 
-  void ParameterizeCameraRigs(Reconstruction* reconstruction);
+  void ParameterizeCameraRigs(/*Reconstruction* reconstruction*/);
 
   const Options rig_options_;
 

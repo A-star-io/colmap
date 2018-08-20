@@ -255,7 +255,7 @@ bool IncrementalMapper::RegisterInitialImagePair(const Options& options,
                                                  const image_t image_id1,
                                                  const image_t image_id2) {
   CHECK_NOTNULL(reconstruction_);
-  CHECK_EQ(reconstruction_->NumRegImages(), 0);
+  CHECK_EQ(reconstruction_->NumRegImages(), 0UL);
 
   CHECK(options.Check());
 
@@ -340,7 +340,7 @@ bool IncrementalMapper::RegisterInitialImagePair(const Options& options,
 bool IncrementalMapper::RegisterNextImage(const Options& options,
                                           const image_t image_id) {
   CHECK_NOTNULL(reconstruction_);
-  CHECK_GE(reconstruction_->NumRegImages(), 2);
+  CHECK_GE(reconstruction_->NumRegImages(), 2UL);
 
   CHECK(options.Check());
 
@@ -641,7 +641,7 @@ bool IncrementalMapper::AdjustGlobalBundle(
 
   const std::vector<image_t>& reg_image_ids = reconstruction_->RegImageIds();
 
-  CHECK_GE(reg_image_ids.size(), 2) << "At least two images must be "
+  CHECK_GE(reg_image_ids.size(), 2UL) << "At least two images must be "
                                        "registered for global "
                                        "bundle-adjustment";
 
@@ -676,7 +676,7 @@ bool IncrementalMapper::AdjustParallelGlobalBundle(
 
   const std::vector<image_t>& reg_image_ids = reconstruction_->RegImageIds();
 
-  CHECK_GE(reg_image_ids.size(), 2)
+  CHECK_GE(reg_image_ids.size(), 2UL)
       << "At least two images must be registered for global bundle-adjustment";
 
   // Avoid degeneracies in bundle adjustment.

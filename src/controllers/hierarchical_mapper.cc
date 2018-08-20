@@ -225,7 +225,7 @@ void HierarchicalMapperController::Run() {
 
   MergeClusters(*scene_clustering.GetRootCluster(), &reconstruction_managers);
 
-  CHECK_EQ(reconstruction_managers.size(), 1);
+  CHECK_EQ(reconstruction_managers.size(), 1UL);
   *reconstruction_manager_ = std::move(reconstruction_managers.begin()->second);
 
   std::cout << std::endl;

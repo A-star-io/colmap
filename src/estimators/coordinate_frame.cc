@@ -56,8 +56,8 @@ struct VanishingPointEstimator {
   // Estimate the vanishing point from at least two line segments.
   static std::vector<M_t> Estimate(const std::vector<X_t>& line_segments,
                                    const std::vector<Y_t>& lines) {
-    CHECK_EQ(line_segments.size(), 2);
-    CHECK_EQ(lines.size(), 2);
+    CHECK_EQ(line_segments.size(), 2UL);
+    CHECK_EQ(lines.size(), 2UL);
     return {lines[0].cross(lines[1])};
   }
 

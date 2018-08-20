@@ -70,7 +70,7 @@ struct AbsolutePoseEstimationOptions {
   RANSACOptions ransac_options;
 
   void Check() const {
-    CHECK_GT(num_focal_length_samples, 0);
+    CHECK_GT(num_focal_length_samples, 0UL);
     CHECK_GT(min_focal_length_ratio, 0);
     CHECK_GT(max_focal_length_ratio, 0);
     CHECK_LT(min_focal_length_ratio, max_focal_length_ratio);

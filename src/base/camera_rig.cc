@@ -69,7 +69,7 @@ void CameraRig::AddCamera(const camera_t camera_id,
                           const Eigen::Vector4d& rel_qvec,
                           const Eigen::Vector3d& rel_tvec) {
   CHECK(!HasCamera(camera_id));
-  CHECK_EQ(NumSnapshots(), 0);
+  CHECK_EQ(NumSnapshots(), 0UL);
   RigCamera rig_camera;
   rig_camera.rel_qvec = rel_qvec;
   rig_camera.rel_tvec = rel_tvec;
@@ -97,7 +97,7 @@ void CameraRig::Check(const Reconstruction& reconstruction) const {
     bool has_ref_camera = false;
     for (const auto image_id : snapshot) {
       CHECK(reconstruction.ExistsImage(image_id));
-      CHECK_EQ(all_image_ids.count(image_id), 0);
+      CHECK_EQ(all_image_ids.count(image_id), 0UL);
       all_image_ids.insert(image_id);
       const auto& image = reconstruction.Image(image_id);
       CHECK(HasCamera(image.CameraId()));
@@ -126,8 +126,8 @@ const Eigen::Vector3d& CameraRig::RelativeTvec(const camera_t camera_id) const {
 }
 
 double CameraRig::ComputeScale(const Reconstruction& reconstruction) const {
-  CHECK_GT(NumSnapshots(), 0);
-  CHECK_GT(NumCameras(), 0);
+  CHECK_GT(NumSnapshots(), 0UL);
+  CHECK_GT(NumCameras(), 0UL);
   double scaling_factor = 0;
   size_t num_dists = 0;
   std::vector<Eigen::Vector3d> rel_proj_centers(NumCameras());
@@ -165,7 +165,7 @@ double CameraRig::ComputeScale(const Reconstruction& reconstruction) const {
 }
 
 void CameraRig::ComputeRelativePoses(const Reconstruction& reconstruction) {
-  CHECK_GT(NumSnapshots(), 0);
+  CHECK_GT(NumSnapshots(), 0UL);
   CHECK_NE(ref_camera_id_, kInvalidCameraId);
 
   for (auto& rig_camera : rig_cameras_) {
@@ -208,7 +208,7 @@ void CameraRig::ComputeRelativePoses(const Reconstruction& reconstruction) {
   // Compute the average relative poses.
   for (auto& rig_camera : rig_cameras_) {
     if (rig_camera.first != ref_camera_id_) {
-      CHECK_GT(rel_qvecs.count(rig_camera.first), 0)
+      CHECK_GT(rel_qvecs.count(rig_camera.first), 0UL)
           << "Need at least one snapshot with an image of camera "
           << rig_camera.first << " and the reference camera " << ref_camera_id_
           << " to compute its relative pose in the camera rig";

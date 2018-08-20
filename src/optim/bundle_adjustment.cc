@@ -173,8 +173,8 @@ bool BundleAdjustmentConfig::HasConstantPose(const image_t image_id) const {
 
 void BundleAdjustmentConfig::SetConstantTvec(const image_t image_id,
                                              const std::vector<int>& idxs) {
-  CHECK_GT(idxs.size(), 0);
-  CHECK_LE(idxs.size(), 3);
+  CHECK_GT(idxs.size(), 0UL);
+  CHECK_LE(idxs.size(), 3UL);
   CHECK(HasImage(image_id));
   CHECK(!HasConstantPose(image_id));
   CHECK(!VectorContainsDuplicateValues(idxs))
@@ -538,11 +538,11 @@ ParallelBundleAdjuster::ParallelBundleAdjuster(
       num_measurements_(0) {
   CHECK(options_.Check());
   CHECK(ba_options_.Check());
-  CHECK_EQ(config_.NumConstantCameras(), 0)
+  CHECK_EQ(config_.NumConstantCameras(), 0UL)
       << "PBA does not allow to set individual cameras constant";
-  CHECK_EQ(config_.NumConstantPoses(), 0)
+  CHECK_EQ(config_.NumConstantPoses(), 0UL)
       << "PBA does not allow to set individual translational elements constant";
-  CHECK_EQ(config_.NumConstantTvecs(), 0)
+  CHECK_EQ(config_.NumConstantTvecs(), 0UL)
       << "PBA does not allow to set individual translational elements constant";
   CHECK(config_.NumVariablePoints() == 0 && config_.NumConstantPoints() == 0)
       << "PBA does not allow to parameterize individual 3D points";
@@ -550,7 +550,7 @@ ParallelBundleAdjuster::ParallelBundleAdjuster(
 
 bool ParallelBundleAdjuster::Solve(Reconstruction* reconstruction) {
   CHECK_NOTNULL(reconstruction);
-  CHECK_EQ(num_measurements_, 0)
+  CHECK_EQ(num_measurements_, 0UL)
       << "Cannot use the same ParallelBundleAdjuster multiple times";
   CHECK(!ba_options_.refine_principal_point);
   CHECK_EQ(ba_options_.refine_focal_length, ba_options_.refine_extra_params);
@@ -685,7 +685,7 @@ void ParallelBundleAdjuster::AddImagesToProblem(
     Reconstruction* reconstruction) {
   for (const image_t image_id : config_.Images()) {
     const Image& image = reconstruction->Image(image_id);
-    CHECK_EQ(camera_ids_.count(image.CameraId()), 0)
+    CHECK_EQ(camera_ids_.count(image.CameraId()), 0UL)
         << "PBA does not support shared intrinsics";
 
     const Camera& camera = reconstruction->Camera(image.CameraId());
@@ -762,7 +762,7 @@ void ParallelBundleAdjuster::AddPointsToProblem(
     point3D_idx += 1;
   }
 
-  CHECK_EQ(point3D_idx, points3D_.size());
+  CHECK_EQ(static_cast<unsigned long>(point3D_idx), points3D_.size());
   CHECK_EQ(measurement_idx, measurements_.size());
 }
 
@@ -786,14 +786,14 @@ bool RigBundleAdjuster::Solve(Reconstruction* reconstruction,
   for (auto& camera_rig : *camera_rigs) {
     camera_rig.Check(*reconstruction);
     for (const auto& camera_id : camera_rig.GetCameraIds()) {
-      CHECK_EQ(rig_camera_ids.count(camera_id), 0)
+      CHECK_EQ(rig_camera_ids.count(camera_id), 0UL)
           << "Camera must not be part of multiple camera rigs";
       rig_camera_ids.insert(camera_id);
     }
 
     for (const auto& snapshot : camera_rig.Snapshots()) {
       for (const auto& image_id : snapshot) {
-        CHECK_EQ(image_id_to_camera_rig_.count(image_id), 0)
+        CHECK_EQ(image_id_to_camera_rig_.count(image_id), 0UL)
             << "Image must not be part of multiple camera rigs";
         image_id_to_camera_rig_.emplace(image_id, &camera_rig);
       }
@@ -845,7 +845,8 @@ bool RigBundleAdjuster::Solve(Reconstruction* reconstruction,
     PrintSolverSummary(summary_);
   }
 
-  TearDown(reconstruction, *camera_rigs);
+  //TearDown(reconstruction, *camera_rigs);
+  TearDown(reconstruction);
 
   return true;
 }
@@ -856,7 +857,8 @@ void RigBundleAdjuster::SetUp(Reconstruction* reconstruction,
   ComputeCameraRigPoses(*reconstruction, *camera_rigs);
 
   for (const image_t image_id : config_.Images()) {
-    AddImageToProblem(image_id, reconstruction, camera_rigs, loss_function);
+    //AddImageToProblem(image_id, reconstruction, camera_rigs, loss_function);
+    AddImageToProblem(image_id, reconstruction, loss_function);
   }
   for (const auto point3D_id : config_.VariablePoints()) {
     AddPointToProblem(point3D_id, reconstruction, loss_function);
@@ -867,11 +869,13 @@ void RigBundleAdjuster::SetUp(Reconstruction* reconstruction,
 
   ParameterizeCameras(reconstruction);
   ParameterizePoints(reconstruction);
-  ParameterizeCameraRigs(reconstruction);
+  ParameterizeCameraRigs();
 }
 
-void RigBundleAdjuster::TearDown(Reconstruction* reconstruction,
-                                 const std::vector<CameraRig>& camera_rigs) {
+
+//void RigBundleAdjuster::TearDown(Reconstruction* reconstruction,
+//                                 const std::vector<CameraRig>& camera_rigs) {
+void RigBundleAdjuster::TearDown(Reconstruction* reconstruction) {
   for (const auto& elem : image_id_to_camera_rig_) {
     const auto image_id = elem.first;
     const auto& camera_rig = *elem.second;
@@ -886,7 +890,7 @@ void RigBundleAdjuster::TearDown(Reconstruction* reconstruction,
 
 void RigBundleAdjuster::AddImageToProblem(const image_t image_id,
                                           Reconstruction* reconstruction,
-                                          std::vector<CameraRig>* camera_rigs,
+                                          //std::vector<CameraRig>* camera_rigs,
                                           ceres::LossFunction* loss_function) {
   Image& image = reconstruction->Image(image_id);
   Camera& camera = reconstruction->Camera(image.CameraId());
@@ -1115,7 +1119,7 @@ void RigBundleAdjuster::ComputeCameraRigPoses(
   }
 }
 
-void RigBundleAdjuster::ParameterizeCameraRigs(Reconstruction* reconstruction) {
+void RigBundleAdjuster::ParameterizeCameraRigs(/*Reconstruction* reconstruction*/) {
   for (double* qvec_data : parameterized_qvec_data_) {
     ceres::LocalParameterization* quaternion_parameterization =
         new ceres::QuaternionParameterization;

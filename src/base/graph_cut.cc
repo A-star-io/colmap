@@ -84,7 +84,7 @@ class GraclusGraph {
 
     xadj_.push_back(edge_idx);
 
-    CHECK_EQ(edge_idx, 2 * edges.size());
+    CHECK_EQ(static_cast<unsigned long>(edge_idx), 2 * edges.size());
     CHECK_EQ(xadj_.size(), vertex_id_to_idx_.size() + 1);
     CHECK_EQ(adjncy_.size(), 2 * edges.size());
     CHECK_EQ(adjwgt_.size(), 2 * edges.size());
@@ -152,7 +152,7 @@ void ComputeMinGraphCutStoerWagner(
     const std::vector<int>& weights, int* cut_weight,
     std::vector<char>* cut_labels) {
   CHECK_EQ(edges.size(), weights.size());
-  CHECK_GE(edges.size(), 2);
+  CHECK_GE(edges.size(), 2UL);
 
   typedef boost::property<boost::edge_weight_t, int> edge_weight_t;
   typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS,
